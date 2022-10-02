@@ -1,4 +1,4 @@
-/* Partytown 0.7.0 - MIT builder.io */
+/* Partytown 0.7.0-dev1664729636239 - MIT builder.io */
 (self => {
     const WinIdKey = Symbol();
     const InstanceIdKey = Symbol();
@@ -722,7 +722,7 @@
         return resolvedUrl;
     };
     const resolveUrl = (env, url, type) => resolveToUrl(env, url, type) + "";
-    const getPartytownScript = () => `<script src="${partytownLibUrl("partytown.js?v=0.7.0")}"><\/script>`;
+    const getPartytownScript = () => `<script src="${partytownLibUrl("partytown.js?v=0.7.0-dev1664729636239")}"><\/script>`;
     const createImageConstructor = env => class HTMLImageElement {
         constructor() {
             this.s = "";
@@ -1297,7 +1297,7 @@
                         (() => {
                             if (!webWorkerCtx.$initWindowMedia$) {
                                 self.$bridgeToMedia$ = [ getter, setter, callMethod, constructGlobal, definePrototypePropertyDescriptor, randomId, WinIdKey, InstanceIdKey, ApplyPathKey ];
-                                webWorkerCtx.$importScripts$(partytownLibUrl("partytown-media.js?v=0.7.0"));
+                                webWorkerCtx.$importScripts$(partytownLibUrl("partytown-media.js?v=0.7.0-dev1664729636239"));
                                 webWorkerCtx.$initWindowMedia$ = self.$bridgeFromMedia$;
                                 delete self.$bridgeFromMedia$;
                             }
@@ -1670,6 +1670,7 @@
                     let errorMsg = "";
                     let env = environments[winId];
                     let rsp;
+                    let javascriptContentTypes = [ "text/jscript", "text/javascript", "text/x-javascript", "application/javascript", "application/x-javascript", "text/ecmascript", "text/x-ecmascript", "application/ecmascript" ];
                     if (scriptSrc) {
                         try {
                             scriptSrc = resolveToUrl(env, scriptSrc, "script") + "";
@@ -1677,9 +1678,16 @@
                             webWorkerCtx.$config$.logScriptExecution && logWorker(`Execute script src: ${scriptOrgSrc}`, winId);
                             rsp = await fetch(scriptSrc);
                             if (rsp.ok) {
-                                scriptContent = await rsp.text();
-                                env.$currentScriptId$ = instanceId;
-                                run(env, scriptContent, scriptOrgSrc || scriptSrc);
+                                let responseContentType = rsp.headers.get("content-type");
+                                let shouldExecute = javascriptContentTypes.some((ct => {
+                                    var _a, _b, _c;
+                                    return null === (_c = null === (_a = null == responseContentType ? void 0 : responseContentType.toLowerCase) || void 0 === _a ? void 0 : (_b = _a.call(responseContentType)).includes) || void 0 === _c ? void 0 : _c.call(_b, ct);
+                                }));
+                                if (shouldExecute) {
+                                    scriptContent = await rsp.text();
+                                    env.$currentScriptId$ = instanceId;
+                                    run(env, scriptContent, scriptOrgSrc || scriptSrc);
+                                }
                                 runStateLoadHandlers(instance, "load");
                             } else {
                                 errorMsg = rsp.statusText;
